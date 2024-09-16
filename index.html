@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Table</title>
+    <title>Party scheduler</title>
     <style>
         .separator {
             margin: 20px 0;
@@ -12,16 +12,16 @@
     </style>
 </head>
 <body onload="initializeTable()">
-    <h1>Timestamp Maker</h1>
+    <h1>Party scheduler</h1>
 
     <!-- Next Weekly Reset Block -->
-    <h3>Next Weekly Reset:</h3>
+    <h3>Next Weekly Reset</h3>
     <span>Time:</span> <span id="next_weekly_reset"></span>
     <p></p>
     <span>Stamp: &lt;t:</span><span id="next_weekly_reset_stamp"></span><span>:F&gt</span>
 
     <!-- Default time input and button -->
-    <h3>Scheduler:</h3>
+    <h3>Scheduler</h3>
     <div>
         <label for="default_time">Default Time:</label>
         <input type="time" id="default_time">
@@ -49,8 +49,8 @@
     <!-- Buttons for additional actions -->
     <br>
     <div>
-        <button onclick="addSlot()">Add slot</button>
         <button onclick="addOneDayToAllSlots()">Add one day to all slots</button>
+        <button onclick="addSlot()">Add slot</button>
     </div>
 
     <!-- Separator between table and parser -->
@@ -75,7 +75,7 @@
     <!-- Instructions for using the scheduler -->
     <div class="separator"></div>
     <div>
-        <h3>Insturction:</h3>
+        <h3>Instruction</h3>
         <ul>
             <li>Set the date and time in your timezone that you want everyone to react to.</li>
             <li>Enter your scheduling message to the Input text box. {x} will be replaced by the corresponding timestamp upon parse, where x refers to the row number in the scheduler.</li>
@@ -88,7 +88,7 @@
 
     <!-- Import/Export Section -->
     <div>
-        <h3>Import/Export Scheduler Settings:</h3>
+        <h3>Import/Export Scheduler Settings</h3>
         <div>
             <label for="export_text">Export JSON:</label>
             <br>
@@ -106,13 +106,11 @@
         <br>
         <button onclick="importSettings()">Import</button>
     </div>
-
-    <div class="separator"></div>
+        <div class="separator"></div>
     <div>
         <p>Made by: Nelly (Solstice) in Elysium</p>
         <p>I lied it was ChatGPT I don't even know how to code uwu</p>
     </div>
-
 
     <script>
         let rowCount = 0;  // To keep track of the number of rows
@@ -152,11 +150,11 @@
             var tableBody = document.querySelector('#dynamicTable tbody');
             var row = document.createElement('tr');
 
-            row.innerHTML = `
-                <td>${index}</td>
-                <td><input type="date" id="slot${index}_date" value="${date}"></td>
-                <td><input type="time" id="slot${index}_time" value="${time}"></td>
-                <td>${index === 1 ? '' : '<button onclick="removeRow(this)">Remove</button>'}</td>
+            row.innerHTML = `\
+                <td>${index}</td>\
+                <td><input type="date" id="slot${index}_date" value="${date}"></td>\
+                <td><input type="time" id="slot${index}_time" value="${time}"></td>\
+                <td>${index === 1 ? '' : '<button onclick="removeRow(this)">Remove</button>'}</td>\
             `;
 
             tableBody.appendChild(row);
@@ -185,43 +183,41 @@
             });
         }
 
-        // Function to apply default time to all time inputs
+        // Function to apply default time to all rows
         function applyDefaultTime() {
-            var defaultTime = document.getElementById('default_time').value;
-            var timeInputs = document.querySelectorAll('#dynamicTable tbody input[type="time"]');
-            timeInputs.forEach(input => {
-                input.value = defaultTime;
+            let defaultTime = document.getElementById('default_time').value;
+            let rows = document.querySelectorAll('#dynamicTable tbody tr');
+            rows.forEach(row => {
+                let timeInput = row.querySelector('input[type="time"]');
+                if (timeInput) {
+                    timeInput.value = defaultTime;
+                }
             });
         }
 
-        // Function to add one day to all dates
-        function addOneDayToAllSlots() {
-            var dateInputs = document.querySelectorAll('#dynamicTable tbody input[type="date"]');
-            dateInputs.forEach(input => {
-                var currentDate = new Date(input.value);
-                currentDate.setDate(currentDate.getDate() + 1);
-                input.value = currentDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-            });
-        }
-
-        // Function to add a new slot (row)
+        // Function to add a new slot
         function addSlot() {
             rowCount++;
-            var lastDateInput = document.querySelector('#dynamicTable tbody tr:last-child input[type="date"]');
-            var date = new Date();
-            if (lastDateInput) {
-                date = new Date(lastDateInput.value);
-                date.setDate(date.getDate() + 1); // Set date to one day after the last row's date
-            } else {
-                date = new Date(next_reset.getTime());
-            }
-            var time = document.getElementById('default_time').value || "00:00"; // Use default time if set
-            createRow(rowCount, date.toISOString().split('T')[0], time); // Format as YYYY-MM-DD
+            var date = new Date(next_reset.getTime() + (rowCount - 1) * 86400000); // Increment date for each row
+            createRow(rowCount, date.toISOString().split('T')[0], document.getElementById('default_time').value);
         }
 
-        // Initialize the table with 5 rows and set default values
+        // Function to add one day to all slots
+        function addOneDayToAllSlots() {
+            var rows = document.querySelectorAll('#dynamicTable tbody tr');
+            rows.forEach(row => {
+                var dateInput = row.querySelector('input[type="date"]');
+                if (dateInput) {
+                    var currentDate = new Date(dateInput.value);
+                    currentDate.setDate(currentDate.getDate() + 1);
+                    dateInput.value = currentDate.toISOString().split('T')[0];
+                }
+            });
+        }
+
+        // Function to initialize the table with default values
         function initializeTable() {
-            var defaultTime = next_reset.toTimeString().substring(0, 5); // Extract HH:MM from next_reset
+            let defaultTime = next_reset.toTimeString().substring(0, 5); // Extract HH:MM from next_reset
             document.getElementById('default_time').value = defaultTime;
 
             // Set next_weekly_reset display
@@ -276,17 +272,37 @@ E - {5}`;
         function parseText() {
             let inputText = document.getElementById('text_input').value;
             let outputText = inputText;
+
+            // Get all rows from the table
             let rows = document.querySelectorAll('#dynamicTable tbody tr');
 
+            // Iterate over each row
             rows.forEach((row, index) => {
+                // Get the date and time values from the row
                 let dateValue = row.querySelector('input[type="date"]').value;
-                let timestamp = Math.floor(new Date(dateValue).getTime() / 1000);
+                let timeValue = row.querySelector('input[type="time"]').value;
+
+                // Skip this row if date or time is not set
+                if (!dateValue || !timeValue) return;
+
+                // Create a Date object from the date and time values
+                let dateTime = new Date(`${dateValue}T${timeValue}`);
+                
+                // Convert the Date object to a UNIX timestamp (in seconds)
+                let timestamp = Math.floor(dateTime.getTime() / 1000);
+
+                // Create the replacement string
                 let replacement = `<t:${timestamp}:F>`;
-                let placeholder = `{${index + 1}}`;
+                
+                // Create the placeholder string
+                let placeholder = `\\{${index + 1}\\}`;
+
+                // Replace all occurrences of the placeholder in the input text
                 let regex = new RegExp(placeholder, 'g');
                 outputText = outputText.replace(regex, replacement);
             });
 
+            // Set the output text
             document.getElementById('text_output').value = outputText;
         }
 
