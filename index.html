@@ -230,9 +230,11 @@ A - {1}
 B - {2}
 C - {3}
 D - {4}
-E - {5}`;
+E - {5}
+F - {6}
+G - {7}`;
 
-            for (let i = 1; i <= 5; i++) {
+            for (let i = 1; i <= 7; i++) {
                 rowCount = i;
                 var date = new Date(next_reset.getTime() + (i - 1) * 86400000); // Increment date for each row
                 createRow(i, date.toISOString().split('T')[0], defaultTime); // Format as YYYY-MM-DD
