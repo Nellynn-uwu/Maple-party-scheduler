@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Table</title>
+    <style>
+        .separator {
+            margin: 20px 0;
+            border-top: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body onload="initializeTable()">
+    <h1>Timestamp Maker</h1>
+
+    <!-- Next Weekly Reset Block -->
+    <h3>Next Weekly Reset:</h3>
+    <span>Time:</span> <span id="next_weekly_reset"></span>
+    <p></p>
+    <span>Stamp: &lt;t:</span><span id="next_weekly_reset_stamp"></span><span>:F&gt</span>
+
+    <!-- Default time input and button -->
+    <h3>Scheduler:</h3>
+    <div>
+        <label for="default_time">Default Time:</label>
+        <input type="time" id="default_time">
+        <button onclick="applyDefaultTime()">Apply Default</button>
+        <button onclick="setRowsToNextWeeklyReset()">Set Rows to Next Weekly Reset</button>
+    </div>
+    
+    <!-- Button to set the first row and subsequent rows -->
+    <br>
+
+    <table id="dynamicTable">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be added here by JavaScript -->
+        </tbody>
+    </table>
+
+    <!-- Buttons for additional actions -->
+    <br>
+    <div>
+        <button onclick="addSlot()">Add slot</button>
+        <button onclick="addOneDayToAllSlots()">Add one day to all slots</button>
+    </div>
+
+    <!-- Separator between table and parser -->
+    <div class="separator"></div>
+
+    <!-- Text input, parse button, and text output -->
+    <div>
+        <label for="text_input">Input Text:</label>
+        <br>
+        <textarea id="text_input" rows="4" cols="50"></textarea>
+    </div>
+    <br>
+    <button onclick="parseText()">Parse</button>
+    <br>
+    <br>
+    <div>
+        <label for="text_output">Output Text:</label>
+        <br>
+        <textarea id="text_output" rows="4" cols="50" readonly></textarea>
+    </div>
+
+    <!-- Instructions for using the scheduler -->
+    <div class="separator"></div>
+    <div>
+        <h3>Insturction:</h3>
+        <ul>
+            <li>Set the date and time in your timezone that you want everyone to react to.</li>
+            <li>Enter your scheduling message to the Input text box. {x} will be replaced by the corresponding timestamp upon parse, where x refers to the row number in the scheduler.</li>
+            <li>Export the scheduler setting as JSON to save it as text, and import the settings with the JSON.</li>
+        </ul>
+    </div>
+
+    <!-- Separator between instructions and import/export section -->
+    <div class="separator"></div>
+
+    <!-- Import/Export Section -->
+    <div>
+        <h3>Import/Export Scheduler Settings:</h3>
+        <div>
+            <label for="export_text">Export JSON:</label>
+            <br>
+            <textarea id="export_text" rows="4" cols="50" readonly></textarea>
+        </div>
+        <br>
+        <button onclick="exportSettings()">Export</button>
+        <br>
+        <br>
+        <div>
+            <label for="import_text">Import JSON:</label>
+            <br>
+            <textarea id="import_text" rows="4" cols="50"></textarea>
+        </div>
+        <br>
+        <button onclick="importSettings()">Import</button>
+    </div>
+
+    <div class="separator"></div>
+    <div>
+        <p>Made by: Nelly (Solstice) in Elysium</p>
+        <p>I lied it was ChatGPT I don't even know how to code uwu</p>
+    </div>
+
+
+    <script>
+        let rowCount = 0;  // To keep track of the number of rows
+
+        // Initialize first_reset with a specific timestamp
+        var first_reset = new Date(1726185600000); // Example timestamp
+        var next_reset = new Date(1726444800000 + 86400000 + Math.round(Math.abs(first_reset - new Date()) / 86400000));
+
+        // Initialize next_weekly_reset to match the day and time of 1726099200000
+        var reference_timestamp = new Date(1726099200000);
+        var next_weekly_reset = new Date(reference_timestamp);
+
+        // Calculate the next occurrence of the same weekday
+        function getNextWeeklyReset(currentDate, referenceDate) {
+            let currentWeekday = currentDate.getDay();
+            let referenceWeekday = referenceDate.getDay();
+            let diff = referenceWeekday - currentWeekday;
+            
+            if (diff <= 0) {
+                diff += 7; // move to next week
+            }
+
+            let nextResetDate = new Date(currentDate);
+            nextResetDate.setDate(currentDate.getDate() + diff);
+            nextResetDate.setHours(referenceDate.getHours());
+            nextResetDate.setMinutes(referenceDate.getMinutes());
+            nextResetDate.setSeconds(0);
+            nextResetDate.setMilliseconds(0);
+
+            return nextResetDate;
+        }
+
+        next_weekly_reset = getNextWeeklyReset(new Date(), reference_timestamp);
+
+        // Function to create a row
+        function createRow(index, date, time) {
+            var tableBody = document.querySelector('#dynamicTable tbody');
+            var row = document.createElement('tr');
+
+            row.innerHTML = `
+                <td>${index}</td>
+                <td><input type="date" id="slot${index}_date" value="${date}"></td>
+                <td><input type="time" id="slot${index}_time" value="${time}"></td>
+                <td>${index === 1 ? '' : '<button onclick="removeRow(this)">Remove</button>'}</td>
+            `;
+
+            tableBody.appendChild(row);
+        }
+
+        // Function to remove a row and update row numbers
+        function removeRow(button) {
+            var row = button.parentNode.parentNode;
+            row.parentNode.removeChild(row);
+
+            updateRowNumbers();
+        }
+
+        // Function to update row numbers
+        function updateRowNumbers() {
+            var rows = document.querySelectorAll('#dynamicTable tbody tr');
+            rows.forEach((row, index) => {
+                row.querySelector('td').textContent = index + 1;
+                row.querySelector('input[type="date"]').id = `slot${index + 1}_date`;
+                row.querySelector('input[type="time"]').id = `slot${index + 1}_time`;
+                if (index === 0) {
+                    row.querySelector('button')?.remove();
+                } else {
+                    row.querySelector('button')?.setAttribute('onclick', 'removeRow(this)');
+                }
+            });
+        }
+
+        // Function to apply default time to all time inputs
+        function applyDefaultTime() {
+            var defaultTime = document.getElementById('default_time').value;
+            var timeInputs = document.querySelectorAll('#dynamicTable tbody input[type="time"]');
+            timeInputs.forEach(input => {
+                input.value = defaultTime;
+            });
+        }
+
+        // Function to add one day to all dates
+        function addOneDayToAllSlots() {
+            var dateInputs = document.querySelectorAll('#dynamicTable tbody input[type="date"]');
+            dateInputs.forEach(input => {
+                var currentDate = new Date(input.value);
+                currentDate.setDate(currentDate.getDate() + 1);
+                input.value = currentDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+            });
+        }
+
+        // Function to add a new slot (row)
+        function addSlot() {
+            rowCount++;
+            var lastDateInput = document.querySelector('#dynamicTable tbody tr:last-child input[type="date"]');
+            var date = new Date();
+            if (lastDateInput) {
+                date = new Date(lastDateInput.value);
+                date.setDate(date.getDate() + 1); // Set date to one day after the last row's date
+            } else {
+                date = new Date(next_reset.getTime());
+            }
+            var time = document.getElementById('default_time').value || "00:00"; // Use default time if set
+            createRow(rowCount, date.toISOString().split('T')[0], time); // Format as YYYY-MM-DD
+        }
+
+        // Initialize the table with 5 rows and set default values
+        function initializeTable() {
+            var defaultTime = next_reset.toTimeString().substring(0, 5); // Extract HH:MM from next_reset
+            document.getElementById('default_time').value = defaultTime;
+
+            // Set next_weekly_reset display
+            document.getElementById('next_weekly_reset').textContent = disc_parse(next_weekly_reset);
+            document.getElementById('next_weekly_reset_stamp').textContent = Math.floor(next_weekly_reset.getTime() / 1000);
+
+            // Set default text in the input box
+            document.getElementById('text_input').value = `Please react to the following:
+A - {1}
+B - {2}
+C - {3}
+D - {4}
+E - {5}`;
+
+            for (let i = 1; i <= 5; i++) {
+                rowCount = i;
+                var date = new Date(next_reset.getTime() + (i - 1) * 86400000); // Increment date for each row
+                createRow(i, date.toISOString().split('T')[0], defaultTime); // Format as YYYY-MM-DD
+            }
+        }
+
+        // Function to set the first row's date and time to next_weekly_reset and adjust subsequent rows
+        function setRowsToNextWeeklyReset() {
+            var rows = document.querySelectorAll('#dynamicTable tbody tr');
+            if (rows.length > 0) {
+                // Set the first row to next_weekly_reset
+                var firstRow = rows[0];
+                var dateInput = firstRow.querySelector('input[type="date"]');
+                var timeInput = firstRow.querySelector('input[type="time"]');
+                if (dateInput && timeInput) {
+                    dateInput.value = next_weekly_reset.toISOString().split('T')[0];
+                    timeInput.value = next_weekly_reset.toTimeString().substring(0, 5); // Extract HH:MM
+                }
+
+                // Adjust subsequent rows
+                rows.forEach((row, index) => {
+                    if (index > 0) {
+                        var dateInput = row.querySelector('input[type="date"]');
+                        var timeInput = row.querySelector('input[type="time"]');
+                        if (dateInput && timeInput) {
+                            var previousDate = new Date(rows[index - 1].querySelector('input[type="date"]').value);
+                            previousDate.setDate(previousDate.getDate() + 1);
+                            dateInput.value = previousDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+                            timeInput.value = next_weekly_reset.toTimeString().substring(0, 5); // Extract HH:MM
+                        }
+                    }
+                });
+            }
+        }
+
+        // Function to parse text and replace placeholders with timestamps
+        function parseText() {
+            let inputText = document.getElementById('text_input').value;
+            let outputText = inputText;
+            let rows = document.querySelectorAll('#dynamicTable tbody tr');
+
+            rows.forEach((row, index) => {
+                let dateValue = row.querySelector('input[type="date"]').value;
+                let timestamp = Math.floor(new Date(dateValue).getTime() / 1000);
+                let replacement = `<t:${timestamp}:F>`;
+                let placeholder = `{${index + 1}}`;
+                let regex = new RegExp(placeholder, 'g');
+                outputText = outputText.replace(regex, replacement);
+            });
+
+            document.getElementById('text_output').value = outputText;
+        }
+
+        // Function to export settings to JSON
+        function exportSettings() {
+            let rows = document.querySelectorAll('#dynamicTable tbody tr');
+            let settings = Array.from(rows).map(row => {
+                return {
+                    date: new Date(row.querySelector('input[type="date"]').value).getTime() / 1000,
+                    time: row.querySelector('input[type="time"]').value
+                };
+            });
+
+            document.getElementById('export_text').value = JSON.stringify(settings, null, 2);
+        }
+
+        // Function to import settings from JSON
+        function importSettings() {
+            let importText = document.getElementById('import_text').value;
+            let settings = JSON.parse(importText);
+
+            // Clear existing rows
+            document.querySelector('#dynamicTable tbody').innerHTML = '';
+            rowCount = 0;
+
+            settings.forEach((setting, index) => {
+                rowCount++;
+                var date = new Date(setting.date * 1000).toISOString().split('T')[0]; // Convert from UNIX timestamp
+                createRow(rowCount, date, setting.time);
+            });
+        }
+
+        // Helper function to format date
+        function add_zero(time) {
+            if (time === 0) return "00";
+            else if (time < 10) return "0" + time;
+            else return time;
+        }
+
+        // Helper function to format date
+        function disc_parse(d) {
+            let m = add_zero(d.getMinutes());
+            let h = add_zero(d.getHours());
+            let noon = (d.getMinutes() / 2 >= 12) ? " PM" : " AM";
+            let day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d.getDay()];
+            let month = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][d.getMonth()];
+
+            return `${day}, ${month} ${d.getDate()}, ${d.getFullYear()} ${h}:${m}${noon}`;
+        }
+
+        // Update the current time every second
+        function updateCurrentTime() {
+            let d = new Date();
+            document.getElementById('current1').textContent = disc_parse(d);
+            document.getElementById('current2').textContent = Math.floor(d.getTime() / 1000);
+        }
+        setInterval(updateCurrentTime, 1000);
+    </script>
+</body>
+</html>
