@@ -12,7 +12,7 @@
         }
     </style>
 </head>
-<body onload="initializeTable()">
+<body>
     <h1>Party scheduler</h1>
 
     <!-- Next Weekly Reset Block -->
@@ -123,6 +123,38 @@
         // Initialize next_weekly_reset to match the day and time of 1726099200000
         var reference_timestamp = new Date(1726099200000);
         var next_weekly_reset = new Date(reference_timestamp);
+        next_weekly_reset = getNextWeeklyReset(new Date(), reference_timestamp);
+            // Set next_weekly_reset display
+            document.getElementById('next_weekly_reset').textContent = disc_parse(next_weekly_reset);
+            document.getElementById('next_weekly_reset_stamp').textContent = Math.floor(next_weekly_reset.getTime() / 1000);
+
+        const fields = document.querySelectorAll("button, input")
+        fields.forEach(field => {
+            field.addEventListener("click", saveFieldToStorage)
+            field.addEventListener("input", saveFieldToStorage)
+        })
+
+        setDefaultTime()
+        if (localStorage.getItem("JSONsetting") == null)
+            {
+                initializeTable()
+            } else {
+                loadSettings(localStorage.getItem("JSONsetting"))
+            }
+
+        if (localStorage.getItem("inputText") == null)
+            {
+            document.getElementById('text_input').value = `Please react to the following:
+A - {1}
+B - {2}
+C - {3}
+D - {4}
+E - {5}
+F - {6}
+G - {7}`;
+            } else {
+                document.getElementById('text_input').value = localStorage.getItem("inputText")
+            }
 
         // Calculate the next occurrence of the same weekday
         function getNextWeeklyReset(currentDate, referenceDate) {
@@ -133,8 +165,6 @@
                 return new Date(referenceDate.getTime() + 604800000 * 2)
             }
         }
-
-        next_weekly_reset = getNextWeeklyReset(new Date(), reference_timestamp);
 
         // Function to create a row
         function createRow(index, date, time) {
@@ -155,7 +185,7 @@
         function removeRow(button) {
             var row = button.parentNode.parentNode;
             row.parentNode.removeChild(row);
-
+            saveFieldToStorage();
             updateRowNumbers();
         }
 
@@ -206,24 +236,16 @@
             });
         }
 
+        function setDefaultTime() {
+            let defaultTime = next_reset.toTimeString().substring(0, 5); // Extract HH:MM from next_reset
+            document.getElementById('default_time').value = defaultTime;
+        }
+
         // Function to initialize the table with default values
         function initializeTable() {
             let defaultTime = next_reset.toTimeString().substring(0, 5); // Extract HH:MM from next_reset
             document.getElementById('default_time').value = defaultTime;
-
-            // Set next_weekly_reset display
-            document.getElementById('next_weekly_reset').textContent = disc_parse(next_weekly_reset);
-            document.getElementById('next_weekly_reset_stamp').textContent = Math.floor(next_weekly_reset.getTime() / 1000);
-
             // Set default text in the input box
-            document.getElementById('text_input').value = `Please react to the following:
-A - {1}
-B - {2}
-C - {3}
-D - {4}
-E - {5}
-F - {6}
-G - {7}`;
 
             for (let i = 1; i <= 7; i++) {
                 rowCount = i;
@@ -303,7 +325,8 @@ G - {7}`;
         }
 
         // Function to export settings to JSON
-        function exportSettings() {
+
+        function getSettingJSON() {
             let rows = document.querySelectorAll('#dynamicTable tbody tr');
             let settings = Array.from(rows).map(row => {
                 return {
@@ -311,16 +334,22 @@ G - {7}`;
                     time: row.querySelector('input[type="time"]').value
                 };
             });
+        return JSON.stringify(settings, null, 2)
+        }
 
-            document.getElementById('export_text').value = JSON.stringify(settings, null, 2);
+
+        function exportSettings() {
+            document.getElementById('export_text').value = getSettingJSON();
         }
 
         // Function to import settings from JSON
         function importSettings() {
             let importText = document.getElementById('import_text').value;
-            let settings = JSON.parse(importText);
+	    loadSettings(importText);
+        }
 
-            // Clear existing rows
+        function loadSettings(settingJSON) {
+            let settings = JSON.parse(settingJSON)
             document.querySelector('#dynamicTable tbody').innerHTML = '';
             rowCount = 0;
 
@@ -329,7 +358,7 @@ G - {7}`;
                 var date = new Date(setting.date * 1000).toISOString().split('T')[0]; // Convert from UNIX timestamp
                 createRow(rowCount, date, setting.time);
             });
-        }
+            }
 
         // Helper function to format date
         function add_zero(time) {
@@ -348,6 +377,15 @@ G - {7}`;
 
             return `${day}, ${month} ${d.getDate()}, ${d.getFullYear()} ${h}:${m}${noon}`;
         }
+
+        function saveFieldToStorage() {
+            localStorage.setItem("JSONsetting", getSettingJSON());
+            localStorage.setItem("inputText", document.getElementById("text_input").value);
+            console.log("local storage updated")
+        }
+
+
+
 
     </script>
 </body>
