@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -125,22 +126,12 @@
 
         // Calculate the next occurrence of the same weekday
         function getNextWeeklyReset(currentDate, referenceDate) {
-            let currentWeekday = currentDate.getDay();
-            let referenceWeekday = referenceDate.getDay();
-            let diff = referenceWeekday - currentWeekday;
-            
-            if (diff <= 0) {
-                diff += 7; // move to next week
+            let nextResetDate = new Date(referenceDate.getTime() + 604800000)
+            if (currentDate < nextResetDate) { 
+                return nextResetDate
+            } else {
+                return new Date(referenceDate.getTime() + 604800000 * 2)
             }
-
-            let nextResetDate = new Date(currentDate);
-            nextResetDate.setDate(currentDate.getDate() + diff);
-            nextResetDate.setHours(referenceDate.getHours());
-            nextResetDate.setMinutes(referenceDate.getMinutes());
-            nextResetDate.setSeconds(0);
-            nextResetDate.setMilliseconds(0);
-
-            return nextResetDate;
         }
 
         next_weekly_reset = getNextWeeklyReset(new Date(), reference_timestamp);
@@ -250,12 +241,15 @@ G - {7}`;
                 var dateInput = firstRow.querySelector('input[type="date"]');
                 var timeInput = firstRow.querySelector('input[type="time"]');
                 if (dateInput && timeInput) {
-                    dateInput.value = next_weekly_reset.toISOString().split('T')[0];
+                    var tzoffset = next_weekly_reset.getTimezoneOffset() * 60000;
+                    console.log(new Date (next_weekly_reset.getTime() - tzoffset).toISOString().split('T')[0])
+                    dateInput.value = new Date (next_weekly_reset.getTime() - tzoffset).toISOString().split('T')[0];
                     timeInput.value = next_weekly_reset.toTimeString().substring(0, 5); // Extract HH:MM
                 }
 
                 // Adjust subsequent rows
                 rows.forEach((row, index) => {
+                    if (row == 1) {return}
                     if (index > 0) {
                         var dateInput = row.querySelector('input[type="date"]');
                         var timeInput = row.querySelector('input[type="time"]');
@@ -347,21 +341,14 @@ G - {7}`;
         // Helper function to format date
         function disc_parse(d) {
             let m = add_zero(d.getMinutes());
-            let h = add_zero(d.getHours());
-            let noon = (d.getMinutes() / 2 >= 12) ? " PM" : " AM";
+            let h = (d.getHours() > 12) ? add_zero(d.getHours() - 12) : add_zero(d.getHours());
+            let noon = (d.getHours() >= 12) ? " PM" : " AM";
             let day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d.getDay()];
             let month = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][d.getMonth()];
 
             return `${day}, ${month} ${d.getDate()}, ${d.getFullYear()} ${h}:${m}${noon}`;
         }
 
-        // Update the current time every second
-        function updateCurrentTime() {
-            let d = new Date();
-            document.getElementById('current1').textContent = disc_parse(d);
-            document.getElementById('current2').textContent = Math.floor(d.getTime() / 1000);
-        }
-        setInterval(updateCurrentTime, 1000);
     </script>
 </body>
 </html>
