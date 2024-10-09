@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,7 +15,17 @@
 </head>
 <body>
     <h1>Party scheduler</h1>
+    <!-- Debug
+    <h3>Today</h3>
+    <span>Time:</span> <span id="today_time"></span>
+    <p></p>
+    <span>Stamp: &lt;t:</span><span id="today_time_stamp"></span><span>:F&gt</span>
 
+    <h3>Next daily reset</h3>
+    <span>Time:</span> <span id="next_daily_reset"></span>
+    <p></p>
+    <span>Stamp: &lt;t:</span><span id="next_daily_reset_stamp"></span><span>:F&gt</span>
+ -->
     <!-- Next Weekly Reset Block -->
     <h3>Next Weekly Reset</h3>
     <span>Time:</span> <span id="next_weekly_reset"></span>
@@ -116,17 +127,23 @@
     <script>
         let rowCount = 0;  // To keep track of the number of rows
 
-        // Initialize first_reset with a specific timestamp
-        var first_reset = new Date(1726185600000); // Example timestamp
-        var next_reset = new Date(1726444800000 + 86400000 + Math.round(Math.abs(first_reset - new Date()) / 86400000));
+
+        var first_reset = new Date(1726185600000); // Example timestamp for DAILY RESET
+        var next_reset = new Date(1726185600000 + 86400000 * (Math.ceil(Math.abs(first_reset - new Date()) / 86400000)));
+
+        // DEBUG SECTION - CURRENT TIME AND NEXT DAILY RESET
+        // var today = new Date();
+        // document.getElementById('today_time').textContent = disc_parse(today);
+        // document.getElementById('next_daily_reset').textContent = disc_parse(next_reset);
+	// document.getElementById('today_time_stamp').textContent = Math.floor(today.getTime() / 1000);
+        // document.getElementById('next_daily_reset_stamp').textContent = Math.floor(next_reset.getTime() / 1000);
 
         // Initialize next_weekly_reset to match the day and time of 1726099200000
-        var reference_timestamp = new Date(1726099200000);
-        var next_weekly_reset = new Date(reference_timestamp);
-        next_weekly_reset = getNextWeeklyReset(new Date(), reference_timestamp);
-            // Set next_weekly_reset display
-            document.getElementById('next_weekly_reset').textContent = disc_parse(next_weekly_reset);
-            document.getElementById('next_weekly_reset_stamp').textContent = Math.floor(next_weekly_reset.getTime() / 1000);
+        var first_weekly_reset = new Date(1726099200000); // reference for WEEKLY RESET
+  
+        var next_weekly_reset = getNextWeeklyReset(new Date()); // Me: 2nd arg should be 
+        document.getElementById('next_weekly_reset').textContent = disc_parse(next_weekly_reset);
+        document.getElementById('next_weekly_reset_stamp').textContent = Math.floor(next_weekly_reset.getTime() / 1000);
 
         const fields = document.querySelectorAll("button, input")
         fields.forEach(field => {
@@ -157,14 +174,11 @@ G - {7}`;
             }
 
         // Calculate the next occurrence of the same weekday
-        function getNextWeeklyReset(currentDate, referenceDate) {
-            let nextResetDate = new Date(referenceDate.getTime() + 604800000)
-            if (currentDate < nextResetDate) { 
-                return nextResetDate
-            } else {
-                return new Date(referenceDate.getTime() + 604800000 * 2)
-            }
+        function getNextWeeklyReset(date) {
+            var first_weekly_reset = new Date(1726099200000); // reference for WEEKLY RESET
+            return new Date(1726099200000 + 604800000 * (Math.ceil(Math.abs(date.getTime() - 1726099200000)/604800000)))
         }
+
 
         // Function to create a row
         function createRow(index, date, time) {
